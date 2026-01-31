@@ -1,0 +1,6 @@
+framework module avif {
+  umbrella header "avif.h"
+  export *
+
+  module * { export * }
+}

@@ -1,0 +1,814 @@
+diff --git a/ios-arm64-crossbuild.txt b/ios-arm64-crossbuild.txt
+new file mode 100644
+index 000000000..4ccc75063
+--- /dev/null
++++ b/ios-arm64-crossbuild.txt
+@@ -0,0 +1,19 @@
++[binaries]
++c = 'clang'
++ar = 'ar'
++strip = 'strip'
++pkg-config = 'pkg-config'
++
++[host_machine]
++system = 'ios'
++cpu_family = 'aarch64'
++cpu = 'aarch64'
++endian = 'little'
++
++[properties]
++needs_exe_wrapper = true
++is_simulator_build = false
++
++[built-in options]
++c_args = ['-target', 'arm64-apple-ios']
++c_link_args = ['-target', 'arm64-apple-ios']
+diff --git a/ios-arm64-simulator-crossbuild.txt b/ios-arm64-simulator-crossbuild.txt
+new file mode 100644
+index 000000000..626ed6fc8
+--- /dev/null
++++ b/ios-arm64-simulator-crossbuild.txt
+@@ -0,0 +1,19 @@
++[binaries]
++c = 'clang'
++ar = 'ar'
++strip = 'strip'
++pkg-config = 'pkg-config'
++
++[host_machine]
++system = 'ios'
++cpu_family = 'aarch64'
++cpu = 'aarch64'
++endian = 'little'
++
++[properties]
++needs_exe_wrapper = true
++is_simulator_build = true
++
++[built-in options]
++c_args = ['-target', 'arm64-apple-ios-simulator']
++c_link_args = ['-target', 'arm64-apple-ios-simulator']
+diff --git a/ios-x86_64-simulator-crossbuild.txt b/ios-x86_64-simulator-crossbuild.txt
+new file mode 100644
+index 000000000..c7aedbdfc
+--- /dev/null
++++ b/ios-x86_64-simulator-crossbuild.txt
+@@ -0,0 +1,19 @@
++[binaries]
++c = 'clang'
++ar = 'ar'
++strip = 'strip'
++pkg-config = 'pkg-config'
++
++[host_machine]
++system = 'ios'
++cpu_family = 'x86_64'
++cpu = 'x86_64'
++endian = 'little'
++
++[properties]
++needs_exe_wrapper = true
++is_simulator_build = true
++
++[built-in options]
++c_args = ['-target', 'x86_64-apple-ios-simulator']
++c_link_args = ['-target', 'x86_64-apple-ios-simulator']
+diff --git a/meson.build b/meson.build
+index f58ab5b4f..1dc0106c8 100644
+--- a/meson.build
++++ b/meson.build
+@@ -27,6 +27,8 @@ elif host_machine.system() == 'darwin'
+     plat = 'mac'
+ elif host_machine.system() == 'linux'
+     plat = 'linux'
++elif host_machine.system() == 'ios'
++    plat = 'ios'
+ elif host_machine.system() == 'android'
+     plat = 'android'
+     error(
+@@ -52,14 +54,40 @@ cc = meson.get_compiler('c')
+ 
+ fs = import('fs')
+ 
+-py = import('python').find_installation(pure: false)
+-py_dep = py.dependency()
+-
+-is_pypy = py.get_variable('implementation_lower', '') == 'pypy'
++if plat == 'ios'
++    is_simulator_build = meson.get_external_property('is_simulator_build', false)
++    cpu = host_machine.cpu_family()
++
++    # sysroot defined here instead of crossbuild.txt files, since those files can't run shell commands
++    sysroot = run_command('xcrun', '--sdk', is_simulator_build ? 'iphonesimulator' : 'iphoneos', '--show-sdk-path').stdout().strip()
++    add_project_arguments('-isysroot', sysroot, language: 'c')
++    add_project_link_arguments('-isysroot', sysroot, language: 'c')
++    message('sysroot: ' + sysroot)
++
++    if is_simulator_build
++        if cpu == 'aarch64'
++            ios_arch_slice = 'ios-arm64_x86_64-simulator'
++        elif cpu == 'x86_64'
++            ios_arch_slice = 'ios-arm64_x86_64-simulator'
++        else
++            error('Unsupported iOS simulator architecture: ' + cpu)
++        endif
++    else
++        # device
++        if cpu == 'aarch64'
++            ios_arch_slice = 'ios-arm64'
++        else
++            error('Unsupported iOS device architecture: ' + cpu)
++        endif
++    endif
+ 
+-if not cc.has_header('Python.h', dependencies: py_dep)
+-    error(
+-        'Cannot use `Python.h`. Perhaps you need to install python-dev|python-devel',
++    # NOTE: Framework dir needs to be an absolute path, include must be relative.
++    py_base_path = '../xcode/Support/Python.xcframework/' + ios_arch_slice
++    py_framework_dir = meson.current_source_dir() + '/' + py_base_path
++    py_framework_inc = py_base_path + '/Python.framework/Headers'
++    py_dep = declare_dependency(
++        include_directories: include_directories(py_framework_inc),
++        link_args: ['-F' + py_framework_dir, '-framework', 'Python']
+     )
+ endif
+ 
+@@ -76,7 +104,7 @@ if get_option('coverage')
+     endif
+ endif
+ 
+-pg_dir = py.get_install_dir() / pg
++# pg_dir = py.get_install_dir() / pg
+ 
+ sdl_api = get_option('sdl_api')
+ sdl = 'SDL@0@'.format(sdl_api)
+@@ -237,75 +265,44 @@ else
+     endforeach
+ endif
+ 
+-# TODO: add version constraints?
+-sdl_dep = dependency(sdl, required: false)
+-if not sdl_dep.found()
++if plat == 'ios'
++    # NOTE: Framework dir needs to be an absolute path, include must be relative.
++    sdl_base_path = '../xcode/Support/SDL2.xcframework/' + ios_arch_slice
++    sdl_framework_dir = meson.current_source_dir() + '/' + sdl_base_path
++    sdl_framework_incs = ['../xcode/Support/SDL2_headers/', '../xcode/Support/SDL2_headers/SDL2']
+     sdl_dep = declare_dependency(
+-        include_directories: pg_inc_dirs,
+-        dependencies: cc.find_library(sdl, dirs: pg_lib_dirs),
++        include_directories: include_directories(sdl_framework_incs),
++        link_args: ['-F' + sdl_framework_dir, '-framework', 'SDL2']
+     )
+-endif
+ 
+-# optional
+-sdl_image_dep = dependency(sdl_image, required: false)
+-if not sdl_image_dep.found()
++    sdl_image_base_path = '../xcode/Support/SDL2_image.xcframework/' + ios_arch_slice
++    sdl_image_framework_dir = meson.current_source_dir() + '/' + sdl_image_base_path
++    sdl_image_framework_inc = sdl_image_base_path + '/SDL2_image.framework/Headers'
+     sdl_image_dep = declare_dependency(
+-        include_directories: pg_inc_dirs,
+-        dependencies: cc.find_library(
+-            sdl_image,
+-            dirs: pg_lib_dirs,
+-            required: get_option('image'),
+-        ),
++        include_directories: include_directories(sdl_framework_incs, sdl_image_framework_inc),
++        link_args: ['-F' + sdl_image_framework_dir, '-framework', 'SDL2_image']
+     )
+-endif
+ 
+-sdl_mixer_dep = dependency(sdl_mixer, required: false)
+-if not sdl_mixer_dep.found()
++    sdl_mixer_base_path = '../xcode/Support/SDL2_mixer.xcframework/' + ios_arch_slice
++    sdl_mixer_framework_dir = meson.current_source_dir() + '/' + sdl_mixer_base_path
++    sdl_mixer_framework_inc = sdl_mixer_base_path + '/SDL2_mixer.framework/Headers'
+     sdl_mixer_dep = declare_dependency(
+-        include_directories: pg_inc_dirs,
+-        dependencies: cc.find_library(
+-            sdl_mixer,
+-            dirs: pg_lib_dirs,
+-            required: get_option('mixer'),
+-        ),
++        include_directories: include_directories(sdl_framework_incs, sdl_mixer_framework_inc),
++        link_args: ['-F' + sdl_mixer_framework_dir, '-framework', 'SDL2_mixer']
+     )
+-endif
+ 
+-sdl_ttf_dep = dependency(sdl_ttf, required: false)
+-if not sdl_ttf_dep.found()
++    sdl_ttf_base_path = '../xcode/Support/SDL2_ttf.xcframework/' + ios_arch_slice
++    sdl_ttf_framework_dir = meson.current_source_dir() + '/' + sdl_ttf_base_path
++    sdl_ttf_framework_inc = sdl_ttf_base_path + '/SDL2_ttf.framework/Headers'
+     sdl_ttf_dep = declare_dependency(
+-        include_directories: pg_inc_dirs,
+-        dependencies: cc.find_library(
+-            sdl_ttf,
+-            dirs: pg_lib_dirs,
+-            required: get_option('font'),
+-        ),
++        include_directories: include_directories(sdl_framework_incs, sdl_ttf_framework_inc),
++        link_args: ['-F' + sdl_ttf_framework_dir, '-framework', 'SDL2_ttf']
+     )
+-endif
+ 
+-freetype_dep = dependency('freetype2', required: false)
+-if not freetype_dep.found()
+-    freetype_dep = declare_dependency(
+-        include_directories: pg_inc_dirs,
+-        dependencies: cc.find_library(
+-            'freetype',
+-            dirs: pg_lib_dirs,
+-            required: get_option('freetype'),
+-        ),
+-    )
+-endif
++endif # ios
+ 
+-portmidi_dep = dependency('portmidi', required: false)
+-if not portmidi_dep.found()
+-    portmidi_dep = declare_dependency(
+-        include_directories: pg_inc_dirs,
+-        dependencies: cc.find_library(
+-            'portmidi',
+-            dirs: pg_lib_dirs,
+-            required: get_option('midi'),
+-        ),
+-    )
+-endif
++# NOTE: PortMidi does not support iOS.
++portmidi_dep = dependency('', required: false)
+ 
+ portmidi_deps = [portmidi_dep]
+ 
+@@ -334,7 +331,7 @@ summary(
+         sdl_image: sdl_image_dep.found(),
+         sdl_mixer: sdl_mixer_dep.found(),
+         sdl_ttf: sdl_ttf_dep.found(),
+-        'freetype2': freetype_dep.found(),
++        'freetype2': false, # SDL_ttf links this automatically
+         'portmidi': portmidi_dep.found(),
+         'porttime': portmidi_dep.found() ? porttime_dep.found() : false,
+     },
+@@ -418,22 +415,3 @@ else
+ endif
+ 
+ subdir('src_c')
+-subdir('src_py')
+-
+-if not get_option('stripped')
+-    # run make_docs and make docs
+-    if not fs.is_dir('docs/generated')
+-        make_docs = files('buildconfig/make_docs.py')
+-        res = run_command(
+-            [find_program('python3', 'python'), make_docs],
+-            check: false,
+-        )
+-        message(res.stdout().strip())
+-        message(res.stderr().strip())
+-    endif
+-    subdir('docs')
+-    subdir('test')
+-    subdir('buildconfig/stubs')
+-    install_subdir('examples', install_dir: pg_dir, install_tag: 'pg-tag')
+-    # TODO: install headers? not really important though
+-endif
+diff --git a/src_c/_sdl2/meson.build b/src_c/_sdl2/meson.build
+index 2ad443e99..3437f1c0f 100644
+--- a/src_c/_sdl2/meson.build
++++ b/src_c/_sdl2/meson.build
+@@ -1,67 +1,67 @@
+ cython_base = '../cython/pygame/_sdl2'
+ 
+-_sdl2_audio = py.extension_module(
++_sdl2_audio = shared_module(
+     'audio',
+     fs.is_file('audio.c') ? 'audio.c' : cython_base / 'audio.pyx',
+     dependencies: pg_base_deps,
+     include_directories: '..',
+     install: true,
+-    subdir: pg / '_sdl2',
++    install_dir: pg / '_sdl2',
+ )
+ 
+-_sdl2_video = py.extension_module(
++_sdl2_video = shared_module(
+     'video',
+     fs.is_file('video.c') ? 'video.c' : cython_base / 'video.pyx',
+     dependencies: pg_base_deps,
+     include_directories: '..',
+     install: true,
+-    subdir: pg / '_sdl2',
++    install_dir: pg / '_sdl2',
+ )
+ 
+-_sdl2_controller_old = py.extension_module(
++_sdl2_controller_old = shared_module(
+     'controller_old',
+     fs.is_file('controller_old.c') ? 'controller_old.c' : cython_base / 'controller_old.pyx',
+     dependencies: pg_base_deps,
+     include_directories: '..',
+     install: true,
+-    subdir: pg / '_sdl2',
++    install_dir: pg / '_sdl2',
+ )
+ 
+ if sdl_mixer_dep.found()
+-    _sdl2_mixer = py.extension_module(
++    _sdl2_mixer = shared_module(
+         'mixer',
+         fs.is_file('mixer.c') ? 'mixer.c' : cython_base / 'mixer.pyx',
+         dependencies: pg_base_deps + sdl_mixer_dep,
+         include_directories: '..',
+         install: true,
+-        subdir: pg / '_sdl2',
++        install_dir: pg / '_sdl2',
+     )
+ endif
+ 
+-_sdl2_sdl2 = py.extension_module(
++_sdl2_sdl2 = shared_module(
+     'sdl2',
+     fs.is_file('sdl2.c') ? 'sdl2.c' : cython_base / 'sdl2.pyx',
+     dependencies: pg_base_deps,
+     include_directories: '..',
+     install: true,
+-    subdir: pg / '_sdl2',
++    install_dir: pg / '_sdl2',
+ )
+ 
+ # This is not a cython file
+-_sdl2_touch = py.extension_module(
++_sdl2_touch = shared_module(
+     'touch',
+     'touch.c',
+     dependencies: pg_base_deps,
+     include_directories: '..',
+     install: true,
+-    subdir: pg / '_sdl2',
++    install_dir: pg / '_sdl2',
+ )
+ 
+-_sdl2_controller = py.extension_module(
++_sdl2_controller = shared_module(
+     'controller',
+     'controller.c',
+     dependencies: pg_base_deps,
+     include_directories: '..',
+     install: true,
+-    subdir: pg / '_sdl2',
++    install_dir: pg / '_sdl2',
+ )
+diff --git a/src_c/meson.build b/src_c/meson.build
+index 0c1479a81..076c18acf 100644
+--- a/src_c/meson.build
++++ b/src_c/meson.build
+@@ -1,87 +1,87 @@
+ # first the "required" modules
+ 
+-base = py.extension_module(
++base = shared_module(
+     'base',
+     'base.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-color = py.extension_module(
++color = shared_module(
+     'color',
+     'color.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-constants = py.extension_module(
++constants = shared_module(
+     'constants',
+     'constants.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+ # TODO: support SDL3
+ if sdl_api != 3
+-display = py.extension_module(
++display = shared_module(
+     'display',
+     'display.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ endif
+ 
+-event = py.extension_module(
++event = shared_module(
+     'event',
+     'event.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-key = py.extension_module(
++key = shared_module(
+     'key',
+     'key.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-mouse = py.extension_module(
++mouse = shared_module(
+     'mouse',
+     'mouse.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-rect = py.extension_module(
++rect = shared_module(
+     'rect',
+     ['rect.c', 'pgcompat_rect.c'],
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-rwobject = py.extension_module(
++rwobject = shared_module(
+     'rwobject',
+     'rwobject.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+ # TODO: support SDL3
+@@ -114,7 +114,7 @@ simd_surface_fill_sse2 = static_library(
+     c_args: simd_sse2_neon_flags + warnings_error,
+ )
+ 
+-surface = py.extension_module(
++surface = shared_module(
+     'surface',
+     [
+         'surface.c',
+@@ -130,53 +130,53 @@ surface = py.extension_module(
+     ],
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ endif
+ 
+-surflock = py.extension_module(
++surflock = shared_module(
+     'surflock',
+     'surflock.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-time = py.extension_module(
++time = shared_module(
+     'time',
+     'time.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-joystick = py.extension_module(
++joystick = shared_module(
+     'joystick',
+     'joystick.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-draw = py.extension_module(
++draw = shared_module(
+     'draw',
+     'draw.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-image = py.extension_module(
++image = shared_module(
+     'image',
+     'image.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+ simd_transform_avx2 = static_library(
+@@ -209,7 +209,7 @@ else
+     transform_sources += 'scale_mmx.c'
+ endif
+ 
+-transform = py.extension_module(
++transform = shared_module(
+     'transform',
+     transform_sources,
+     c_args: warnings_error,
+@@ -217,112 +217,112 @@ transform = py.extension_module(
+     objects: transform_objs,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-mask = py.extension_module(
++mask = shared_module(
+     'mask',
+     ['mask.c', 'bitmask.c'],
+     c_args: warnings_error + warnings_temp_mask,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-bufferproxy = py.extension_module(
++bufferproxy = shared_module(
+     'bufferproxy',
+     'bufferproxy.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-pixelarray = py.extension_module(
++pixelarray = shared_module(
+     'pixelarray',
+     'pixelarray.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-math = py.extension_module(
++math = shared_module(
+     'math',
+     'math.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-pixelcopy = py.extension_module(
++pixelcopy = shared_module(
+     'pixelcopy',
+     'pixelcopy.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-newbuffer = py.extension_module(
++newbuffer = shared_module(
+     'newbuffer',
+     'newbuffer.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+ # new/experimental/uncommon stuff, but built by default
+-system = py.extension_module(
++system = shared_module(
+     'system',
+     'system.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-geometry = py.extension_module(
++geometry = shared_module(
+     'geometry',
+     'geometry.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+-window = py.extension_module(
++window = shared_module(
+     'window',
+     'window.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+ # TODO: support SDL3
+ if sdl_api != 3
+-_render = py.extension_module(
++_render = shared_module(
+     '_render',
+     'render.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ endif
+ 
+ # TODO: support SDL3
+ if sdl_api != 3
+-gfxdraw = py.extension_module(
++gfxdraw = shared_module(
+     'gfxdraw',
+     ['gfxdraw.c', 'SDL_gfx/SDL_gfxPrimitives.c'],
+     # c_args: warnings_error,
+     dependencies: pg_base_deps,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ endif
+ 
+@@ -354,14 +354,14 @@ elif plat == 'linux'
+     pg_camera_sources += 'camera_v4l2.c'
+ endif
+ 
+-_camera = py.extension_module(
++_camera = shared_module(
+     '_camera',
+     pg_camera_sources,
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     link_args: pg_camera_link,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+ # pygame.scrap
+@@ -370,37 +370,37 @@ if plat == 'win'
+     pg_scrap_link += ['-luser32', '-lgdi32']
+ endif
+ 
+-scrap = py.extension_module(
++scrap = shared_module(
+     'scrap',
+     'scrap.c',
+     c_args: warnings_error,
+     dependencies: pg_base_deps,
+     link_args: pg_scrap_link,
+     install: true,
+-    subdir: pg,
++    install_dir: pg,
+ )
+ 
+ # optional modules
+ 
+ if sdl_image_dep.found()
+-    imageext = py.extension_module(
++    imageext = shared_module(
+         'imageext',
+         'imageext.c',
+         c_args: warnings_error,
+         dependencies: pg_base_deps + sdl_image_dep,
+         install: true,
+-        subdir: pg,
++        install_dir: pg,
+     )
+ endif
+ 
+ if sdl_ttf_dep.found()
+-    font = py.extension_module(
++    font = shared_module(
+         'font',
+         'font.c',
+         c_args: warnings_error,
+         dependencies: pg_base_deps + sdl_ttf_dep,
+         install: true,
+-        subdir: pg,
++        install_dir: pg,
+     )
+ endif
+ 
+@@ -408,53 +408,34 @@ endif
+ if sdl_api != 3
+ 
+ if sdl_mixer_dep.found()
+-    mixer = py.extension_module(
++    mixer = shared_module(
+         'mixer',
+         'mixer.c',
+         c_args: warnings_error,
+         dependencies: pg_base_deps + sdl_mixer_dep,
+         install: true,
+-        subdir: pg,
++        install_dir: pg,
+     )
+ 
+-    mixer_music = py.extension_module(
++    mixer_music = shared_module(
+         'mixer_music',
+         'music.c',
+         c_args: warnings_error,
+         dependencies: pg_base_deps + sdl_mixer_dep,
+         install: true,
+-        subdir: pg,
+-    )
+-endif
+-
+-if freetype_dep.found()
+-    _freetype = py.extension_module(
+-        '_freetype',
+-        [
+-            'freetype/ft_cache.c',
+-            'freetype/ft_wrap.c',
+-            'freetype/ft_render.c',
+-            'freetype/ft_render_cb.c',
+-            'freetype/ft_layout.c',
+-            'freetype/ft_unicode.c',
+-            '_freetype.c',
+-        ],
+-        c_args: warnings_error + warnings_temp_freetype,
+-        dependencies: pg_base_deps + freetype_dep,
+-        install: true,
+-        subdir: pg,
++        install_dir: pg,
+     )
+ endif
+ 
+ endif
+ 
+ if portmidi_dep.found()
+-    pypm = py.extension_module(
++    pypm = shared_module(
+         'pypm',
+         fs.is_file('pypm.c') ? 'pypm.c' : 'cython/pygame/pypm.pyx',
+         # c_args: warnings_error,
+         dependencies: pg_base_deps + portmidi_deps,
+         install: true,
+-        subdir: pg,
++        install_dir: pg,
+     )
+ endif

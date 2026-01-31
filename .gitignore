@@ -1,0 +1,16 @@
+# standard ignore rules
+.venv/
+venv/
+.DS_Store
+
+# pygame-ce builds
+pygame-ce*/
+**/build*/
+!**/buildconfig/
+
+# template builds
+dist/
+xcode/pygios/app_packages.*/
+**/project.xcworkspace/
+**/xcuserdata/
+**/xcshareddata/

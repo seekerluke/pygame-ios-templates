@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Briefcase-Version: 0.3.26
+Name: pygios
+Formal-Name: pygios
+App-ID: com.example.pygios
+Version: 0.0.1
+Home-page: https://example.com/pygios
+Download-URL: https://example.com/pygios
+Author: Luke Lazzaro
+Author-email: lazzdev@proton.me
+Summary: My pygios application
