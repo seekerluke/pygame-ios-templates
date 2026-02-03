@@ -47,14 +47,11 @@ def apply_patch(pygame_path: str, version: str):
     patch_file_path = os.path.join(SCRIPT_DIR, "patches", f"pygame-ce_{version}.patch")
     with contextlib.chdir(pygame_path):
         result = subprocess.run(
-            ["git", "apply", patch_file_path], capture_output=True, text=True
+            ["patch", "-i", patch_file_path], capture_output=True, text=True
         )
 
         if result.returncode != 0:
-            print("Failed to apply git patch file.")
-            print(f"stdout: {result.stdout}")
-            print(f"stderr: {result.stderr}")
-            raise Exception("Failed to apply git patch file. See previous messages.")
+            raise RuntimeError(f"patch command failed: {result.stderr}")
 
     print("Applied patch file.")
 
