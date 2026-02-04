@@ -1,4 +1,4 @@
-# This script produces a .zip file that can be released on GitHub and fetched by users of pygios.
+# This script produces a .zip file that can be released on GitHub and fetched by users of pygame-ios.
 
 
 import contextlib
@@ -77,7 +77,7 @@ def move_to_xcode(pygame_path: str, target: str, type: str):
     src_py_path = os.path.join(pygame_path, "src_py")
     native_modules_path = os.path.join(pygame_path, f"build-{target}", "src_c")
     app_packages_path = os.path.join(
-        SCRIPT_DIR, "xcode", "pygios", f"app_packages.{type}"
+        SCRIPT_DIR, "xcode", "pygame-ios", f"app_packages.{type}"
     )
     dest_dir = os.path.join(app_packages_path, "pygame")
 
@@ -102,7 +102,7 @@ def move_to_xcode(pygame_path: str, target: str, type: str):
 
 
 def remove_xcode_metadata():
-    xcodeproj_path = os.path.join(SCRIPT_DIR, "xcode", "pygios.xcodeproj")
+    xcodeproj_path = os.path.join(SCRIPT_DIR, "xcode", "pygame-ios.xcodeproj")
     xcworkspace_path = os.path.join(xcodeproj_path, "project.xcworkspace")
     xcuserdata_path = os.path.join(xcodeproj_path, "xcuserdata")
     xcshareddata_path = os.path.join(xcodeproj_path, "xcshareddata")
@@ -125,7 +125,7 @@ def remove_xcode_metadata():
 
 
 def finalise(version: str):
-    name = f"pygios-template-{version}.zip"
+    name = f"pygame-ios-template-{version}.zip"
 
     dist_path = os.path.join(SCRIPT_DIR, "dist")
     result_path = os.path.join(dist_path, name)

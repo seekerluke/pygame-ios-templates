@@ -92,7 +92,7 @@ int main(int argc, char *argv[]) {
             NSLog(@"Unable to identify app module name.");
         }
         app_module_str = [app_module_name UTF8String];
-        
+
         status = PyConfig_SetBytesString(&config, &config.run_module, app_module_str);
         if (PyStatus_Exception(status)) {
             crash_dialog([NSString stringWithFormat:@"Unable to set app module name: %s", status.err_msg, nil]);
@@ -163,8 +163,8 @@ int main(int argc, char *argv[]) {
         }
 
         // Change current working directory to app bundle path with os.chdir
-        NSString *pygiosPath = [NSString stringWithFormat:@"%@/app/%@", [[NSBundle mainBundle] bundlePath], app_module_name];
-        NSLog(@"Changing working directory to: %@", pygiosPath);
+        NSString *pygameIosPath = [NSString stringWithFormat:@"%@/app/%@", [[NSBundle mainBundle] bundlePath], app_module_name];
+        NSLog(@"Changing working directory to: %@", pygameIosPath);
         PyObject *os_module = PyImport_ImportModule("os");
         if (os_module == NULL) {
             crash_dialog(@"Could not import 'os' module");
@@ -175,7 +175,7 @@ int main(int argc, char *argv[]) {
             crash_dialog(@"Could not access 'os.chdir'");
             exit(-21);
         }
-        PyObject *chdir_args = Py_BuildValue("(s)", [pygiosPath UTF8String]);
+        PyObject *chdir_args = Py_BuildValue("(s)", [pygameIosPath UTF8String]);
         PyObject *chdir_result = PyObject_CallObject(chdir_func, chdir_args);
         Py_DECREF(os_module);
         Py_DECREF(chdir_func);
@@ -440,4 +440,3 @@ NSString *format_traceback(PyObject *type, PyObject *value, PyObject *traceback)
 
     return traceback_str;
 }
-

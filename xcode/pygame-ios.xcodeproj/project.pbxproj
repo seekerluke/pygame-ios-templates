@@ -68,10 +68,10 @@
 		610000000000000000000A00 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		610000000000000000100100 /* app */ = {isa = PBXFileReference; lastKnownFileType = folder; path = app; sourceTree = "<group>"; };
 		610000000000000000100300 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		610000000000000000100400 /* pygios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pygios.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		610000000000000000100500 /* pygios-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "pygios-Info.plist"; sourceTree = "<group>"; };
+		610000000000000000100400 /* pygame-ios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pygame-ios.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		610000000000000000100500 /* pygame-ios-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "pygame-ios-Info.plist"; sourceTree = "<group>"; };
 		610000000000000000100600 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		610000000000000000100700 /* pygios-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "pygios-Prefix.pch"; sourceTree = "<group>"; };
+		610000000000000000100700 /* pygame-ios-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "pygame-ios-Prefix.pch"; sourceTree = "<group>"; };
 		610000000000000000100800 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		610000000000000000100900 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 		A32988662F2D75AA000173C7 /* SDL2_ttf.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SDL2_ttf.xcframework; path = Support/SDL2_ttf.xcframework; sourceTree = "<group>"; };
@@ -111,7 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				60A04BC228B35E9F00DAA9E5 /* Support */,
-				60796EEB19190F4100A9926B /* pygios */,
+				60796EEB19190F4100A9926B /* pygame-ios */,
 				60796EE419190F4100A9926B /* Frameworks */,
 				60796EE319190F4100A9926B /* Products */,
 			);
@@ -120,7 +120,7 @@
 		60796EE319190F4100A9926B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				610000000000000000100400 /* pygios.app */,
+				610000000000000000100400 /* pygame-ios.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -143,7 +143,7 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		60796EEB19190F4100A9926B /* pygios */ = {
+		60796EEB19190F4100A9926B /* pygame-ios */ = {
 			isa = PBXGroup;
 			children = (
 				610000000000000000100100 /* app */,
@@ -152,7 +152,7 @@
 				610000000000000000100800 /* Images.xcassets */,
 				60796EEC19190F4100A9926B /* Supporting Files */,
 			);
-			path = pygios;
+			path = pygame-ios;
 			sourceTree = "<group>";
 		};
 		60796EEC19190F4100A9926B /* Supporting Files */ = {
@@ -160,8 +160,8 @@
 			children = (
 				A329887B2F2D75CC000173C7 /* SDL_uikit_main.c */,
 				610000000000000000100300 /* main.m */,
-				610000000000000000100500 /* pygios-Info.plist */,
-				610000000000000000100700 /* pygios-Prefix.pch */,
+				610000000000000000100500 /* pygame-ios-Info.plist */,
+				610000000000000000100700 /* pygame-ios-Prefix.pch */,
 				60796EEE19190F4100A9926B /* InfoPlist.strings */,
 				610000000000000000100900 /* Launch Screen.storyboard */,
 				60754F802AA57C440013A4FB /* dylib-Info-template.plist */,
@@ -180,9 +180,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		60796EE119190F4100A9926B /* pygios */ = {
+		60796EE119190F4100A9926B /* pygame-ios */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 60796F0E19190F4100A9926B /* Build configuration list for PBXNativeTarget "pygios" */;
+			buildConfigurationList = 60796F0E19190F4100A9926B /* Build configuration list for PBXNativeTarget "pygame-ios" */;
 			buildPhases = (
 				60796EDE19190F4100A9926B /* Sources */,
 				60796EDF19190F4100A9926B /* Frameworks */,
@@ -195,9 +195,9 @@
 			);
 			dependencies = (
 			);
-			name = pygios;
-			productName = pygios;
-			productReference = 610000000000000000100400 /* pygios.app */;
+			name = pygame-ios;
+			productName = pygame-ios;
+			productReference = 610000000000000000100400 /* pygame-ios.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -209,7 +209,7 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2620;
 			};
-			buildConfigurationList = 60796EDD19190F4100A9926B /* Build configuration list for PBXProject "pygios" */;
+			buildConfigurationList = 60796EDD19190F4100A9926B /* Build configuration list for PBXProject "pygame-ios" */;
 			compatibilityVersion = "Xcode 13.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -222,7 +222,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				60796EE119190F4100A9926B /* pygios */,
+				60796EE119190F4100A9926B /* pygame-ios */,
 			);
 		};
 /* End PBXProject section */
@@ -279,7 +279,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\n\nmkdir -p \"$CODESIGNING_FOLDER_PATH/python/lib\"\nif [ \"$EFFECTIVE_PLATFORM_NAME\" = \"-iphonesimulator\" ]; then\n    echo \"Installing Python modules for iOS Simulator\"\n    PYTHON_SLICE=\"$PROJECT_DIR/Support/Python.xcframework/ios-arm64_x86_64-simulator\"\n    PACKAGES_PATH=\"$PROJECT_DIR/pygios/app_packages.iphonesimulator\"\nelse\n    echo \"Installing Python modules for iOS Device\"\n    PYTHON_SLICE=\"$PROJECT_DIR/Support/Python.xcframework/ios-arm64\"\n    PACKAGES_PATH=\"$PROJECT_DIR/pygios/app_packages.iphoneos\"\nfi\n\nrsync -au --delete \"$PYTHON_SLICE/lib/\" \"$CODESIGNING_FOLDER_PATH/python/lib/\" \nif [ -e \"$PYTHON_SLICE/Python.dSYM\" ]; then \n    rsync -au --delete  \"$PYTHON_SLICE/Python.dSYM\" \"$BUILT_PRODUCTS_DIR\"\nfi\nrsync -au --delete \"$PACKAGES_PATH/\" \"$CODESIGNING_FOLDER_PATH/app_packages\"\n";
+			shellScript = "set -e\n\nmkdir -p \"$CODESIGNING_FOLDER_PATH/python/lib\"\nif [ \"$EFFECTIVE_PLATFORM_NAME\" = \"-iphonesimulator\" ]; then\n    echo \"Installing Python modules for iOS Simulator\"\n    PYTHON_SLICE=\"$PROJECT_DIR/Support/Python.xcframework/ios-arm64_x86_64-simulator\"\n    PACKAGES_PATH=\"$PROJECT_DIR/pygame-ios/app_packages.iphonesimulator\"\nelse\n    echo \"Installing Python modules for iOS Device\"\n    PYTHON_SLICE=\"$PROJECT_DIR/Support/Python.xcframework/ios-arm64\"\n    PACKAGES_PATH=\"$PROJECT_DIR/pygame-ios/app_packages.iphoneos\"\nfi\n\nrsync -au --delete \"$PYTHON_SLICE/lib/\" \"$CODESIGNING_FOLDER_PATH/python/lib/\" \nif [ -e \"$PYTHON_SLICE/Python.dSYM\" ]; then \n    rsync -au --delete  \"$PYTHON_SLICE/Python.dSYM\" \"$BUILT_PRODUCTS_DIR\"\nfi\nrsync -au --delete \"$PACKAGES_PATH/\" \"$CODESIGNING_FOLDER_PATH/app_packages\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -427,19 +427,19 @@
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = "\"$(PROJECT_DIR)/Support\"";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "pygios/pygios-Prefix.pch";
+				GCC_PREFIX_HEADER = "pygame-ios/pygame-ios-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
 					"\"$(BUILT_PRODUCTS_DIR)/Python.framework/Headers\"",
 					"\"$(PROJECT_DIR)/Support/SDL2_headers/SDL2\"",
 					"\"$(PROJECT_DIR)/Support/SDL2_headers\"",
 				);
-				INFOPLIST_FILE = "pygios/pygios-Info.plist";
+				INFOPLIST_FILE = "pygame-ios/pygame-ios-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.pygios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.pygame-ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -455,19 +455,19 @@
 				ENABLE_TESTABILITY = YES;
 				FRAMEWORK_SEARCH_PATHS = "\"$(PROJECT_DIR)/Support\"";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "pygios/pygios-Prefix.pch";
+				GCC_PREFIX_HEADER = "pygame-ios/pygame-ios-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
 					"\"$(BUILT_PRODUCTS_DIR)/Python.framework/Headers\"",
 					"\"$(PROJECT_DIR)/Support/SDL2_headers/SDL2\"",
 					"\"$(PROJECT_DIR)/Support/SDL2_headers\"",
 				);
-				INFOPLIST_FILE = "pygios/pygios-Info.plist";
+				INFOPLIST_FILE = "pygame-ios/pygame-ios-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.pygios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.pygame-ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -476,7 +476,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		60796EDD19190F4100A9926B /* Build configuration list for PBXProject "pygios" */ = {
+		60796EDD19190F4100A9926B /* Build configuration list for PBXProject "pygame-ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				60796F0C19190F4100A9926B /* Debug */,
@@ -485,7 +485,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		60796F0E19190F4100A9926B /* Build configuration list for PBXNativeTarget "pygios" */ = {
+		60796F0E19190F4100A9926B /* Build configuration list for PBXNativeTarget "pygame-ios" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				60796F0F19190F4100A9926B /* Debug */,

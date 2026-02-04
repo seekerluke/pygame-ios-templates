@@ -10,7 +10,7 @@ pygame-ce*/
 
 # template builds
 dist/
-xcode/pygios/app_packages.*/
+xcode/pygame-ios/app_packages.*/
 **/project.xcworkspace/
 **/xcuserdata/
 **/xcshareddata/
