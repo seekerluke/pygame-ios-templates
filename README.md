@@ -1,6 +1,6 @@
 # pygame-ios-templates
 
-This repository hosts templates fetched by the pygame-ios tool. The Xcode project itself is a modified version of the [empty Briefcase template provided by BeeWare](https://github.com/beeware/briefcase-iOS-Xcode-template). This template also contains pre-built XCFrameworks required by pygame-ce.
+This repository hosts templates fetched by the [pygame-ios](https://github.com/seekerluke/pygame-ios) tool. The Xcode project itself is a modified version of the [empty Briefcase template provided by BeeWare](https://github.com/beeware/briefcase-iOS-Xcode-template). This template also contains pre-built XCFrameworks required by pygame-ce.
 
 ## Build Dependencies
 
