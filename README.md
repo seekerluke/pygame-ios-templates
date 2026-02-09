@@ -40,7 +40,7 @@ To cross compile to iOS with Meson, you need:
 
 `make_template.py` runs Meson with these names, so they need to match exactly.
 
-Currently, `make_template.py` does not include steps to build x86_64 modules, because both arm64 and x86_64 simulator builds use the same path in the Xcode project. If you have an Intel Mac, set the `sim_target` variable to use x86_64 instead of arm64.
+Currently, `make_template.py` does not include steps to build x86_64 modules, because both arm64 and x86_64 simulator builds use the same path in the Xcode project. If you have an Intel Mac, set the `sim_target` variable to use x86_64 instead of arm64. You also need to package x86_64 versions of any binary Python modules you need (eg. numpy) as they are built for arm64 by default.
 
 ### Meson Build Files
 
