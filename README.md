@@ -14,8 +14,6 @@ You can install the required Python packages with `pip install -r requirements.t
 
 From there, you can run `python make_template.py 2.5.6`, replacing the version number with whatever pygame-ce version you want to build a template for. To see all supported versions, see `patches/pygame-ce.json`.
 
-To build releases, you also need the GitHub CLI. You can install this from their website.
-
 ## Making New Templates
 
 I will try to make templates for stable pygame-ce versions as they come out, but if you need a really old version, a fork, or a dev build, then you need to make your own.
