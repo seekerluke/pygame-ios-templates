@@ -82,8 +82,7 @@ def move_to_xcode(pygame_path: str, target: str, type: str):
     dest_dir = os.path.join(app_packages_path, "pygame")
 
     # Remove the app_packages directory if it already exists from previous runs
-    if os.path.isdir(app_packages_path):
-        shutil.rmtree(app_packages_path)
+    shutil.rmtree(dest_dir)
 
     shutil.copytree(native_modules_path, dest_dir, dirs_exist_ok=True)
 
