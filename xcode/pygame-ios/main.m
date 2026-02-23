@@ -9,6 +9,10 @@
 #include <dlfcn.h>
 #include "SDL2/SDL.h"
 
+static PyObject *ios_tick_func = NULL;
+
+void ios_tick(void* args);
+SDL_Window *get_default_pygame_window(void);
 void crash_dialog(NSString *);
 NSString * format_traceback(PyObject *type, PyObject *value, PyObject *traceback);
 
@@ -168,12 +172,12 @@ int main(int argc, char *argv[]) {
         PyObject *os_module = PyImport_ImportModule("os");
         if (os_module == NULL) {
             crash_dialog(@"Could not import 'os' module");
-            exit(-20);
+            ret = -20;
         }
         PyObject *chdir_func = PyObject_GetAttrString(os_module, "chdir");
         if (chdir_func == NULL || !PyCallable_Check(chdir_func)) {
             crash_dialog(@"Could not access 'os.chdir'");
-            exit(-21);
+            ret = -21;
         }
         PyObject *chdir_args = Py_BuildValue("(s)", [pygameIosPath UTF8String]);
         PyObject *chdir_result = PyObject_CallObject(chdir_func, chdir_args);
@@ -182,7 +186,7 @@ int main(int argc, char *argv[]) {
         Py_DECREF(chdir_args);
         if (chdir_result == NULL) {
             crash_dialog(@"Could not change working directory using os.chdir");
-            exit(-22);
+            ret = -22;
         }
         Py_DECREF(chdir_result);
 
@@ -199,14 +203,13 @@ int main(int argc, char *argv[]) {
                 FILE* fd = fopen(nslog_script, "r");
                 if (fd == NULL) {
                     crash_dialog(@"Unable to open nslog.py");
-                    exit(-1);
+                    ret = -1;
                 }
 
                 ret = PyRun_SimpleFileEx(fd, nslog_script, 1);
                 fclose(fd);
                 if (ret != 0) {
                     crash_dialog(@"Unable to install Python NSLog handler");
-                    exit(ret);
                 }
             }
 
@@ -223,32 +226,32 @@ int main(int argc, char *argv[]) {
             module = PyImport_ImportModule("site");
             if (module == NULL) {
                 crash_dialog(@"Could not import site module");
-                exit(-11);
+                ret = -11;
             }
 
             module_attr = PyObject_GetAttrString(module, "addsitedir");
             if (module_attr == NULL || !PyCallable_Check(module_attr)) {
                 crash_dialog(@"Could not access site.addsitedir");
-                exit(-12);
+                ret = -12;
             }
 
             app_packages_path = PyUnicode_FromWideChar(app_packages_path_str, wcslen(app_packages_path_str));
             if (app_packages_path == NULL) {
                 crash_dialog(@"Could not convert app_packages path to unicode");
-                exit(-13);
+                ret = -13;
             }
             PyMem_RawFree(app_packages_path_str);
 
             method_args = Py_BuildValue("(O)", app_packages_path);
             if (method_args == NULL) {
                 crash_dialog(@"Could not create arguments for site.addsitedir");
-                exit(-14);
+                ret = -14;
             }
 
             result = PyObject_CallObject(module_attr, method_args);
             if (result == NULL) {
                 crash_dialog(@"Could not add app_packages directory using site.addsitedir");
-                exit(-15);
+                ret = -15;
             }
 
 
@@ -263,25 +266,25 @@ int main(int argc, char *argv[]) {
             module = PyImport_ImportModule("runpy");
             if (module == NULL) {
                 crash_dialog(@"Could not import runpy module");
-                exit(-2);
+                ret = -2;
             }
 
             module_attr = PyObject_GetAttrString(module, "_run_module_as_main");
             if (module_attr == NULL) {
                 crash_dialog(@"Could not access runpy._run_module_as_main");
-                exit(-3);
+                ret = -3;
             }
 
             app_module = PyUnicode_FromString(app_module_str);
             if (app_module == NULL) {
                 crash_dialog(@"Could not convert module name to unicode");
-                exit(-3);
+                ret = -3;
             }
 
             method_args = Py_BuildValue("(Oi)", app_module, 0);
             if (method_args == NULL) {
                 crash_dialog(@"Could not create arguments for runpy._run_module_as_main");
-                exit(-4);
+                ret = -4;
             }
 
             // Print a separator to differentiate Python startup logs from app logs
@@ -297,7 +300,7 @@ int main(int argc, char *argv[]) {
 
                 if (exc_traceback == NULL) {
                     crash_dialog(@"Could not retrieve traceback");
-                    exit(-5);
+                    ret = -5;
                 }
 
                 traceback_str = NULL;
@@ -349,15 +352,82 @@ int main(int argc, char *argv[]) {
         }
         @catch (NSException *exception) {
             crash_dialog([NSString stringWithFormat:@"Python runtime error: %@", [exception reason]]);
-            ret = -7;
-        }
-        @finally {
             Py_Finalize();
+            ret = -7;
         }
     }
 
-    exit(ret);
+    // Python finishes script execution here. At this point a window is created and top level variables are defined.
+    // If non-zero exit code, don't continue, something went wrong.
+    if (ret == 0) {
+        // Find the "_ios_tick" function if it exists.
+        PyObject *main_module = PyImport_ImportModule("__main__");
+        ios_tick_func = PyObject_GetAttrString(main_module, "_ios_tick");
+        if (!ios_tick_func || !PyCallable_Check(ios_tick_func)) {
+            SDL_Log("Could not find _ios_tick function in main module");
+        }
+
+        // Get the SDL window that Pygame created, if any, and add "_ios_tick" to the iOS run loop.
+        // Note that this code will never run if Python blocks the main loop with a while statement, which is common in Pygame apps.
+        SDL_Window *window = get_default_pygame_window();
+        if (window) {
+            SDL_iPhoneSetAnimationCallback(window, 1, ios_tick, NULL);
+        }
+
+        // Unlike in a normal Briefcase template, the main method completes. Briefcase would normally clean up
+        // the interpreter here and return an exit code, because UIApplicationMain was never run. But SDL calls
+        // that function internally so I can't make the same assumption here.
+    }
+
     return ret;
+}
+
+void ios_tick(void* args) {
+    if (!ios_tick_func) {
+        return;
+    }
+    
+    PyGILState_STATE gstate = PyGILState_Ensure();
+    
+    // Call _ios_tick Python method
+    PyObject *result = PyObject_CallObject(ios_tick_func, NULL);
+    if (!result) {
+        PyObject *exc = PyErr_GetRaisedException();
+        if (PyErr_GivenExceptionMatches(exc, PyExc_SystemExit)) {
+            // Do nothing on sys.exit.
+            // TODO: Should match Briefcase's SystemExit handling in main().
+            SDL_Log("sys.exit called");
+        } else {
+            // This function works with any exception that isn't SystemExit.
+            PyErr_Print();
+        }
+    } else {
+        Py_DECREF(result);
+    }
+    
+    PyGILState_Release(gstate);
+}
+
+SDL_Window *get_default_pygame_window(void) {
+    // Each binary Pygame module has a PyCapsule that holds an array of function pointers for the C API.
+    PyObject *base_module = PyImport_ImportModule("pygame.base");
+    PyObject *c_api_base = PyObject_GetAttrString(base_module, "_PYGAME_C_API");
+    void **pg_api_base = PyCapsule_GetPointer(c_api_base, "pygame.base._PYGAME_C_API");
+    if (!pg_api_base) {
+        PyErr_Print();
+        return NULL;
+    }
+    
+    // pg_GetDefaultWindow is at index 19, hardcoded.
+    // The type signature must match exactly before I can call it.
+    typedef SDL_Window *(*pg_GetDefaultWindow_t)(void);
+    pg_GetDefaultWindow_t pg_GetDefaultWindow = (pg_GetDefaultWindow_t)pg_api_base[19];
+    SDL_Window *window = pg_GetDefaultWindow();
+    if (!window) {
+        SDL_Log("Could not retrieve default Pygame window");
+        return NULL;
+    }
+    return window;
 }
 
 /**
