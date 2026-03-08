@@ -1,5 +1,5 @@
+#!/usr/bin/env python3
 # This script produces a .zip file that can be released on GitHub and fetched by users of pygame-ios.
-
 
 import contextlib
 import io
@@ -67,19 +67,18 @@ def apply_patch(pygame_path: str, version: str):
     content = content.replace(
         "    sdl_ttf_framework_inc = sdl_ttf_base_path + '/SDL2_ttf.framework/Headers'\n    sdl_ttf_dep = declare_dependency(",
         """    sdl_ttf_framework_inc = sdl_ttf_base_path + '/SDL2_ttf.framework/Headers'
-    if ios_arch_slice == 'ios-arm64'
-        freetype_base_path = '../freetype_ios'
-    else
-        freetype_base_path = '../freetype_sim'
-    endif
+    freetype_base_path = '../xcode/Support/freetype.xcframework/' + ios_arch_slice
+    freetype_dir = meson.current_source_dir() + '/' + freetype_base_path
+    freetype_inc = freetype_base_path + '/Headers/freetype2'
     freetype_dep = declare_dependency(
-        include_directories: include_directories(freetype_base_path + '/include/freetype2'),
-        link_args: ['-L' + meson.current_source_dir() + '/' + freetype_base_path + '/lib', '-lfreetype'],
-        compile_args: ['-I' + meson.current_source_dir() + '/' + freetype_base_path + '/include/freetype2']
+        include_directories: include_directories(freetype_inc),
+        link_args: [freetype_dir + '/libfreetype.a'],
+        compile_args: ['-I' + meson.current_source_dir() + '/' + freetype_inc]
     )
 
     sdl_ttf_dep = declare_dependency("""
     )
+
 
     content = content.replace(
         "../xcode/", "../../xcode/"

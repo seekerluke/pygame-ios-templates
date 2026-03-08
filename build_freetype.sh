@@ -78,4 +78,16 @@ cp freetype-${FREETYPE_VERSION}/output_ios/lib/libfreetype.a $PREFIX_IOS/lib/lib
 # Simulator fat library
 lipo -create freetype-${FREETYPE_VERSION}/output_sim_arm64/lib/libfreetype.a freetype-${FREETYPE_VERSION}/output_sim_x86_64/lib/libfreetype.a -output $PREFIX_SIM/lib/libfreetype.a
 
-echo "Freetype build complete!"
+# Create xcframework
+echo "Creating FreeType.xcframework..."
+XCFRAMEWORK_DIR="$(pwd)/../xcode/Support/freetype.xcframework"
+rm -rf "$XCFRAMEWORK_DIR"
+
+xcodebuild -create-xcframework \
+    -library "$PREFIX_IOS/lib/libfreetype.a" \
+    -headers "$PREFIX_IOS/include" \
+    -library "$PREFIX_SIM/lib/libfreetype.a" \
+    -headers "$PREFIX_SIM/include" \
+    -output "$XCFRAMEWORK_DIR"
+
+echo "Freetype build complete! xcframework created at $XCFRAMEWORK_DIR"
