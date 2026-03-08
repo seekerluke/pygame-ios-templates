@@ -1,3 +1,4 @@
 meson
+ninja
 requests
 Cython

@@ -8,11 +8,13 @@ To build templates, you need the following dependencies:
 
 - A machine running a recent version of macOS.
 - Xcode, you can download this from the App Store.
-- Python 3, you can download this from the Python website or through Homebrew.
+- **Python 3.11 or higher** is required due to the use of some modern Python features.
 
-You can install the required Python packages with `pip install -r requirements.txt`. I recommend using a virtual environment (venv).
+> **Note:** The macOS system Python (`/usr/bin/python3`) ships with Python 3.9 and will not work. Use Homebrew (`brew install python`) or `uv` to get Python 3.11+.
 
-From there, you can run `python make_template.py 2.5.6`, replacing the version number with whatever pygame-ce version you want to build a template for. To see all supported versions, see `patches/pygame-ce.json`.
+You can install the required Python packages with `pip install -r requirements.txt` or `uv sync`. I recommend using a virtual environment (venv).
+
+From inside the virtual environment, you can run `python make_template.py 2.5.6`, replacing the version number with whatever pygame-ce version you want to build a template for. To see all supported versions, see `patches/pygame-ce.json`.
 
 ## Making New Templates
 
