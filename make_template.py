@@ -17,7 +17,9 @@ JSON_PATH = os.path.join(SCRIPT_DIR, "patches", "pygame-ce.json")
 
 
 def fetch_pygame_release(version: str) -> str:
-    pygame_dir = os.path.join(SCRIPT_DIR, f"pygame-ce-{version}")
+    build_dir = os.path.join(SCRIPT_DIR, "build")
+    os.makedirs(build_dir, exist_ok=True)
+    pygame_dir = os.path.join(build_dir, f"pygame-ce-{version}")
 
     # remove the pygame-ce directory if it still exists from previous runs
     if os.path.isdir(pygame_dir):
@@ -37,7 +39,7 @@ def fetch_pygame_release(version: str) -> str:
 
     print("Extracting...")
     with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
-        zf.extractall(SCRIPT_DIR)
+        zf.extractall(build_dir)
 
     print(f"pygame-ce v{version} fetched.")
     return pygame_dir
@@ -54,6 +56,71 @@ def apply_patch(pygame_path: str, version: str):
             raise RuntimeError(f"patch command failed: {result.stderr}")
 
     print("Applied patch file.")
+
+    meson_root_path = os.path.join(pygame_path, "meson.build")
+    with open(meson_root_path, "r") as f:
+        content = f.read()
+    
+    # Inject freetype_dep resolution.
+    # Use sdl_ttf_framework_inc as anchor — it's unique to the iOS block,
+    # avoiding a false match on the emscripten sdl_ttf_dep blocks above it.
+    content = content.replace(
+        "    sdl_ttf_framework_inc = sdl_ttf_base_path + '/SDL2_ttf.framework/Headers'\n    sdl_ttf_dep = declare_dependency(",
+        """    sdl_ttf_framework_inc = sdl_ttf_base_path + '/SDL2_ttf.framework/Headers'
+    if ios_arch_slice == 'ios-arm64'
+        freetype_base_path = '../freetype_ios'
+    else
+        freetype_base_path = '../freetype_sim'
+    endif
+    freetype_dep = declare_dependency(
+        include_directories: include_directories(freetype_base_path + '/include/freetype2'),
+        link_args: ['-L' + meson.current_source_dir() + '/' + freetype_base_path + '/lib', '-lfreetype'],
+        compile_args: ['-I' + meson.current_source_dir() + '/' + freetype_base_path + '/include/freetype2']
+    )
+
+    sdl_ttf_dep = declare_dependency("""
+    )
+
+    content = content.replace(
+        "../xcode/", "../../xcode/"
+    )
+
+    with open(meson_root_path, "w") as f:
+        f.write(content)
+
+    meson_src_c_path = os.path.join(pygame_path, "src_c", "meson.build")
+    with open(meson_src_c_path, "r") as f:
+        content_src = f.read()
+
+    # Re-enable _freetype module with shared_module
+    content_src = content_src.replace(
+        "if portmidi_dep.found()",
+        """if freetype_dep.found()
+    _freetype = shared_module(
+        '_freetype',
+        [
+            'freetype/ft_cache.c',
+            'freetype/ft_wrap.c',
+            'freetype/ft_render.c',
+            'freetype/ft_render_cb.c',
+            'freetype/ft_layout.c',
+            'freetype/ft_unicode.c',
+            '_freetype.c',
+        ],
+        c_args: warnings_error + warnings_temp_freetype,
+        dependencies: pg_base_deps + freetype_dep,
+        install: true,
+        install_dir: pg,
+    )
+endif
+
+if portmidi_dep.found()"""
+    )
+    
+    with open(meson_src_c_path, "w") as f:
+        f.write(content_src)
+
+    print("Injected custom FreeType dependencies into meson.build and src_c/meson.build.")
 
 
 def meson_build(pygame_path: str, target: str):
@@ -82,7 +149,8 @@ def move_to_xcode(pygame_path: str, target: str, type: str):
     dest_dir = os.path.join(app_packages_path, "pygame")
 
     # Remove the app_packages directory if it already exists from previous runs
-    shutil.rmtree(dest_dir)
+    if os.path.exists(dest_dir):
+        shutil.rmtree(dest_dir)
 
     shutil.copytree(native_modules_path, dest_dir, dirs_exist_ok=True)
 
