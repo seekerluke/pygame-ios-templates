@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -80,6 +81,8 @@ def main():
     # Extract App configuration
     app_config = config.get("app", {})
     APP_NAME = app_config.get("name", "App")
+    # Create a safe filename (no spaces or special chars)
+    PROJ_NAME = re.sub(r"[^a-zA-Z0-9]", "_", APP_NAME)
     BUNDLE_ID = app_config.get("bundle_id", "com.example.app")
     ICON_PATH = app_config.get("icon_path", "")
     MAIN_MODULE = app_config.get("main_module", "main")
@@ -87,6 +90,7 @@ def main():
     # Extract Build configuration
     build_config = config.get("build", {})
     PYGAME_CE_VERSION = build_config.get("pygame_ce_version", "2.5.6")
+    DEVELOPMENT_TEAM = build_config.get("development_team", "")
     SOURCE_DIR = build_config.get("source_dir", ".")
     IGNORE_DIRS = build_config.get("ignore_dirs", [".git", ".venv", "__pycache__", "pygame-ios-template"])
     EXCLUDE_PIP_PACKAGES = build_config.get("exclude_pip_packages", ["pygame-ce", "pygame", "-e"])
@@ -141,7 +145,14 @@ def main():
         shutil.rmtree(venv_path)
 
     # 2. Patch the Xcode Project File
-    pbxproj_path = os.path.join(template_dir, "pygame-ios.xcodeproj", "project.pbxproj")
+    # Rename the project file to match the app name
+    old_proj_path = os.path.join(template_dir, "pygame-ios.xcodeproj")
+    new_proj_path = os.path.join(template_dir, PROJ_NAME + ".xcodeproj")
+    if os.path.exists(old_proj_path):
+        print(f"Renaming project to {PROJ_NAME}.xcodeproj...")
+        os.rename(old_proj_path, new_proj_path)
+    
+    pbxproj_path = os.path.join(new_proj_path, "project.pbxproj")
     if os.path.exists(pbxproj_path):
         print(f"Patching bundle identifier in {pbxproj_path}...")
         with open(pbxproj_path, "r", encoding="utf-8") as f:
@@ -151,7 +162,28 @@ def main():
             "PRODUCT_BUNDLE_IDENTIFIER = com.example.pygame-ios;",
             f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};"
         )
-        
+
+        # Patch Development Team
+        if DEVELOPMENT_TEAM:
+            # Use regex to handle both tabs and spaces in the template
+            pbx_content = re.sub(r"DEVELOPMENT_TEAM\s*=\s*\"\";", f"DEVELOPMENT_TEAM = {DEVELOPMENT_TEAM};", pbx_content)
+
+            # Map the team ID to the specific pygame-ios target ID
+            target_id = "60796EE119190F4100A9926B"
+            target_attrs = f"""
+\t\t\t\tTargetAttributes = {{
+\t\t\t\t\t{target_id} = {{
+\t\t\t\t\t\tDevelopmentTeam = {DEVELOPMENT_TEAM};
+\t\t\t\t\t}};
+\t\t\t\t}};"""
+
+            if "TargetAttributes" not in pbx_content:
+                # Replace the line with itself + the new block
+                pbx_content = pbx_content.replace(
+                    "LastUpgradeCheck = 2620;",
+                    f"LastUpgradeCheck = 2620;{target_attrs}"
+                )
+
         with open(pbxproj_path, "w", encoding="utf-8") as f:
             f.write(pbx_content)
 
@@ -215,6 +247,11 @@ def main():
         icon_source = os.path.join(project_dir, ICON_PATH)
         icon_dest_dir = os.path.join(template_dir, "pygame-ios", "Images.xcassets", "AppIcon.appiconset")
         if os.path.exists(icon_source) and os.path.exists(icon_dest_dir):
+            # Clean out existing icons to prevent 'unassigned child' warnings
+            for f in os.listdir(icon_dest_dir):
+                if f.endswith(".png"):
+                    os.remove(os.path.join(icon_dest_dir, f))
+            
             icon_dest_path = os.path.join(icon_dest_dir, "custom_icon.png")
             shutil.copy2(icon_source, icon_dest_path)
             
@@ -279,12 +316,16 @@ def main():
         destination = "generic/platform=iOS"
     
     xcodebuild_cmd = [
-        "xcodebuild", "-project", os.path.join(template_dir, "pygame-ios.xcodeproj"),
+        "xcodebuild", "-project", os.path.join(template_dir, PROJ_NAME + ".xcodeproj"),
         "-scheme", "pygame-ios",
         "-destination", destination,
         "build",
-        "-derivedDataPath", os.path.join(template_dir, "build")
+        "-derivedDataPath", os.path.join(template_dir, "build"),
+        "-allowProvisioningUpdates"
     ]
+
+    if DEVELOPMENT_TEAM:
+        xcodebuild_cmd.append(f"DEVELOPMENT_TEAM={DEVELOPMENT_TEAM}")
     
     run_cmd(xcodebuild_cmd)
 
