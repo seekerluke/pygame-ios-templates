@@ -1,0 +1,14 @@
+[project]
+name = "pygame-ios-templates"
+version = "0.1.0"
+description = "Build tool for generating pygame-ios Xcode templates"
+requires-python = ">=3.11"
+dependencies = [
+    "Cython",
+    "meson>=1.0",
+    "ninja",
+    "requests",
+]
+
+[tool.uv]
+package = false

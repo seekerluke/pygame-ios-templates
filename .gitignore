@@ -14,3 +14,4 @@ xcode/pygame-ios/app_packages.*/pygame
 **/project.xcworkspace/
 **/xcuserdata/
 **/xcshareddata/
+__pycache__/
